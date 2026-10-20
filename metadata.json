@@ -1,0 +1,6 @@
+{
+  "name": "Shotblast",
+  "description": "Watch, create, and share videos and shorts with high-definition playback and immersive discovery.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

@@ -1,0 +1,53 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "ShotblastFirebaseSchema",
+  "description": "Firestore database blueprint for SHOTBLAST video sharing app",
+  "collections": {
+    "videos": {
+      "description": "Public and user-uploaded videos & shorts",
+      "fields": {
+        "title": { "type": "string", "maxLength": 200 },
+        "videoUrl": { "type": "string" },
+        "thumbnailUrl": { "type": "string" },
+        "category": { "type": "string", "maxLength": 50 },
+        "description": { "type": "string", "maxLength": 2000 },
+        "durationStr": { "type": "string", "maxLength": 20 },
+        "durationSeconds": { "type": "number" },
+        "viewsCount": { "type": "number" },
+        "likeCount": { "type": "number" },
+        "channelName": { "type": "string", "maxLength": 100 },
+        "channelSubscribers": { "type": "string", "maxLength": 50 },
+        "isVerified": { "type": "boolean" },
+        "isShort": { "type": "boolean" },
+        "tags": { "type": "array", "items": { "type": "string" } },
+        "userId": { "type": "string" },
+        "visibility": { "type": "string" },
+        "createdAt": { "type": "timestamp" },
+        "updatedAt": { "type": "timestamp" }
+      }
+    },
+    "comments": {
+      "description": "User comments on videos",
+      "fields": {
+        "videoId": { "type": "string" },
+        "userId": { "type": "string" },
+        "authorName": { "type": "string", "maxLength": 100 },
+        "authorHandle": { "type": "string", "maxLength": 50 },
+        "text": { "type": "string", "maxLength": 1000 },
+        "likesCount": { "type": "number" },
+        "createdAt": { "type": "timestamp" }
+      }
+    },
+    "users": {
+      "description": "User profiles and channels",
+      "fields": {
+        "displayName": { "type": "string", "maxLength": 100 },
+        "email": { "type": "string" },
+        "photoUrl": { "type": "string" },
+        "channelName": { "type": "string", "maxLength": 100 },
+        "subscribersCount": { "type": "number" },
+        "createdAt": { "type": "timestamp" }
+      }
+    }
+  }
+}

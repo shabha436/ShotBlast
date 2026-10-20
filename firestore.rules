@@ -1,0 +1,30 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Videos collection: allow read for all users, allow create/update for all users
+    match /videos/{videoId} {
+      allow read: if true;
+      allow create, update: if true;
+      allow delete: if request.auth != null;
+
+      // Comments subcollection
+      match /comments/{commentId} {
+        allow read: if true;
+        allow create, update: if true;
+        allow delete: if request.auth != null;
+      }
+    }
+
+    // Channels collection
+    match /channels/{channelId} {
+      allow read: if true;
+      allow write: if true;
+    }
+
+    // Users collection
+    match /users/{userId} {
+      allow read: if true;
+      allow write: if request.auth != null && request.auth.uid == userId;
+    }
+  }
+}
