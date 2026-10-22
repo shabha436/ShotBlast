@@ -140,7 +140,7 @@ object VideoRepository {
         VideoItem(
             id = "vid_anime_01",
             title = "Top 10 Anime Fights That Will Blow Your Mind",
-            videoUrl = "https://media.w3.org/2010/05/sintel/trailer.mp4",
+            videoUrl = "https://raw.githubusercontent.com/mediaelement/mediaelement-files/master/echo-hereweare.mp4",
             thumbnailDrawable = R.drawable.thumb_anime_fight,
             durationStr = "10:21",
             durationSeconds = 621,

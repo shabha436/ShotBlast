@@ -1446,7 +1446,7 @@ private fun VideoPreviewCard(
                     // Embedded Mini ExoPlayer
                     val previewPlayer = remember(videoUrl) {
                         val httpDataSourceFactory = DefaultHttpDataSource.Factory()
-                            .setUserAgent("Mozilla/5.0 (Linux; Android 14)")
+                            .setUserAgent(androidx.media3.common.util.Util.getUserAgent(context, "Shotblast"))
                             .setAllowCrossProtocolRedirects(true)
                         val defaultDataSourceFactory = DefaultDataSource.Factory(context, httpDataSourceFactory)
                         val mediaSourceFactory = DefaultMediaSourceFactory(defaultDataSourceFactory)
@@ -1463,7 +1463,19 @@ private fun VideoPreviewCard(
                     }
 
                     DisposableEffect(previewPlayer) {
+                        val listener = object : Player.Listener {
+                            override fun onPlayerError(error: androidx.media3.common.PlaybackException) {
+                                try {
+                                    val fallback = MediaItem.fromUri("https://flutter.github.io/assets-for-api-docs/assets/videos/bee.mp4")
+                                    previewPlayer.setMediaItem(fallback)
+                                    previewPlayer.prepare()
+                                    previewPlayer.play()
+                                } catch (_: Exception) {}
+                            }
+                        }
+                        previewPlayer.addListener(listener)
                         onDispose {
+                            previewPlayer.removeListener(listener)
                             previewPlayer.release()
                         }
                     }

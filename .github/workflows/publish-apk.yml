@@ -1,0 +1,102 @@
+name: Publish Debug APK Release
+
+on:
+  push:
+    branches:
+      - main
+      - master
+    paths:
+      - 'apk-distribution/app-debug.apk'
+      - 'apk-distribution/app-debug.apk.sha256'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  publish-release:
+    name: Publish APK to GitHub Releases
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Validate APK and Checksum
+        run: |
+          set -euo pipefail
+          APK_FILE="apk-distribution/app-debug.apk"
+          CHECKSUM_FILE="apk-distribution/app-debug.apk.sha256"
+
+          echo "Validating APK existence and integrity..."
+          if [ ! -f "$APK_FILE" ]; then
+            echo "ERROR: $APK_FILE does not exist!"
+            exit 1
+          fi
+
+          if [ ! -s "$APK_FILE" ]; then
+            echo "ERROR: $APK_FILE is empty!"
+            exit 1
+          fi
+
+          if [ ! -f "$CHECKSUM_FILE" ]; then
+            echo "ERROR: $CHECKSUM_FILE does not exist!"
+            exit 1
+          fi
+
+          echo "Verifying SHA-256 checksum..."
+          (cd apk-distribution && sha256sum -c app-debug.apk.sha256)
+
+          echo "Verifying ZIP archive integrity..."
+          unzip -tq "$APK_FILE"
+
+          echo "All validation checks passed successfully."
+
+      - name: Create GitHub Release and Upload APK
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          APK_FILE="apk-distribution/app-debug.apk"
+          TAG_NAME="debug-apk-build-${{ github.run_number }}-${{ github.run_attempt }}"
+          RELEASE_TITLE="Shotblast Debug APK (Build ${{ github.run_number }}.${{ github.run_attempt }})"
+
+          APK_SIZE=$(stat -c %s "$APK_FILE")
+          APK_SIZE_HUMAN=$(numfmt --to=iec-i --suffix=B "$APK_SIZE" 2>/dev/null || ls -lh "$APK_FILE" | awk '{print $5}')
+          APK_SHA256=$(sha256sum "$APK_FILE" | awk '{print $1}')
+
+          RELEASE_NOTES="### Shotblast Android Debug APK
+
+This installable Android debug APK was compiled in Google AI Studio and automatically published as a GitHub Release.
+
+- **APK File:** \`app-debug.apk\`
+- **Size:** ${APK_SIZE_HUMAN} (${APK_SIZE} bytes)
+- **SHA-256 Checksum:** \`${APK_SHA256}\`
+- **Release Tag:** \`${TAG_NAME}\`
+- **Build Commit:** \`${{ github.sha }}\`
+
+#### Installation Instructions:
+1. Download \`app-debug.apk\` directly to your Android device.
+2. Tap the downloaded file in your browser or Files app.
+3. If prompted, allow 'Install from unknown sources' for your browser/file manager.
+4. Tap **Install** to install or update the app."
+
+          echo "Creating GitHub Release: $TAG_NAME with --latest..."
+          gh release create "$TAG_NAME" \
+            "$APK_FILE" \
+            --title "$RELEASE_TITLE" \
+            --notes "$RELEASE_NOTES" \
+            --latest
+
+          REPO_URL="${{ github.server_url }}/${{ github.repository }}"
+          LATEST_DOWNLOAD_URL="${REPO_URL}/releases/latest/download/app-debug.apk"
+          RELEASE_URL="${REPO_URL}/releases/tag/${TAG_NAME}"
+
+          echo "### APK Release Published Successfully! :rocket:" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- **Release Tag:** \`${TAG_NAME}\`" >> $GITHUB_STEP_SUMMARY
+          echo "- **APK Size:** ${APK_SIZE_HUMAN} (${APK_SIZE} bytes)" >> $GITHUB_STEP_SUMMARY
+          echo "- **SHA-256:** \`${APK_SHA256}\`" >> $GITHUB_STEP_SUMMARY
+          echo "- **Release Page:** [View Release](${RELEASE_URL})" >> $GITHUB_STEP_SUMMARY
+          echo "- **Direct Download URL:** [Download app-debug.apk](${LATEST_DOWNLOAD_URL})" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Direct link: \`${LATEST_DOWNLOAD_URL}\`" >> $GITHUB_STEP_SUMMARY

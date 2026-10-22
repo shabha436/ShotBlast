@@ -749,10 +749,10 @@ private fun ShortVideoPageItem(
 
     val exoPlayer = remember(activeUrl) {
         val httpDataSourceFactory = DefaultHttpDataSource.Factory()
-            .setUserAgent("Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36")
+            .setUserAgent(androidx.media3.common.util.Util.getUserAgent(context, "Shotblast"))
             .setAllowCrossProtocolRedirects(true)
-            .setConnectTimeoutMs(10000)
-            .setReadTimeoutMs(10000)
+            .setConnectTimeoutMs(15000)
+            .setReadTimeoutMs(15000)
         val defaultDataSourceFactory = androidx.media3.datasource.DefaultDataSource.Factory(context, httpDataSourceFactory)
         val mediaSourceFactory = DefaultMediaSourceFactory(defaultDataSourceFactory)
 
@@ -811,6 +811,13 @@ private fun ShortVideoPageItem(
                 val fallbackUrl = "https://flutter.github.io/assets-for-api-docs/assets/videos/bee.mp4"
                 if (activeUrl != fallbackUrl) {
                     activeUrl = fallbackUrl
+                    try {
+                        exoPlayer.setMediaItem(MediaItem.fromUri(fallbackUrl))
+                        exoPlayer.prepare()
+                        if (isCurrentPage && !isUserPaused) {
+                            exoPlayer.play()
+                        }
+                    } catch (_: Exception) {}
                 }
             }
         }
@@ -847,6 +854,11 @@ private fun ShortVideoPageItem(
                         ViewGroup.LayoutParams.MATCH_PARENT,
                         ViewGroup.LayoutParams.MATCH_PARENT
                     )
+                }
+            },
+            update = { playerView ->
+                if (playerView.player != exoPlayer) {
+                    playerView.player = exoPlayer
                 }
             },
             modifier = Modifier.fillMaxSize()

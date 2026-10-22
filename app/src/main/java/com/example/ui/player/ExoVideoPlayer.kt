@@ -24,10 +24,12 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.ClosedCaption
 import androidx.compose.material.icons.filled.ClosedCaptionDisabled
+import androidx.compose.material.icons.filled.ErrorOutline
 import androidx.compose.material.icons.filled.Forward10
 import androidx.compose.material.icons.filled.Fullscreen
 import androidx.compose.material.icons.filled.FullscreenExit
@@ -37,6 +39,8 @@ import androidx.compose.material.icons.filled.Replay10
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.SkipNext
 import androidx.compose.material.icons.filled.SkipPrevious
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -72,6 +76,7 @@ import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.ui.PlayerView
 import com.example.ui.theme.ShotblastCyan
+import com.example.ui.theme.ShotblastCoral
 import kotlinx.coroutines.delay
 import java.util.Locale
 
@@ -134,10 +139,10 @@ fun ExoVideoPlayer(
 
     val exoPlayer = remember(activeUrl) {
         val httpDataSourceFactory = androidx.media3.datasource.DefaultHttpDataSource.Factory()
-            .setUserAgent("Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36")
+            .setUserAgent(androidx.media3.common.util.Util.getUserAgent(context, "Shotblast"))
             .setAllowCrossProtocolRedirects(true)
-            .setConnectTimeoutMs(10000)
-            .setReadTimeoutMs(10000)
+            .setConnectTimeoutMs(15000)
+            .setReadTimeoutMs(15000)
         val defaultDataSourceFactory = androidx.media3.datasource.DefaultDataSource.Factory(context, httpDataSourceFactory)
         val mediaSourceFactory = androidx.media3.exoplayer.source.DefaultMediaSourceFactory(defaultDataSourceFactory)
 
@@ -172,10 +177,19 @@ fun ExoVideoPlayer(
             override fun onPlayerError(error: androidx.media3.common.PlaybackException) {
                 android.util.Log.e("ExoVideoPlayer", "Playback error: ${error.errorCodeName} - ${error.message}")
                 isBuffering = false
-                hasPlaybackError = true
                 val fallbackUrl = "https://flutter.github.io/assets-for-api-docs/assets/videos/bee.mp4"
                 if (activeUrl != fallbackUrl) {
                     activeUrl = fallbackUrl
+                    try {
+                        exoPlayer.setMediaItem(MediaItem.fromUri(fallbackUrl))
+                        exoPlayer.prepare()
+                        exoPlayer.play()
+                        hasPlaybackError = false
+                    } catch (_: Exception) {
+                        hasPlaybackError = true
+                    }
+                } else {
+                    hasPlaybackError = true
                 }
             }
         }
@@ -253,11 +267,16 @@ fun ExoVideoPlayer(
                     )
                 }
             },
+            update = { playerView ->
+                if (playerView.player != exoPlayer) {
+                    playerView.player = exoPlayer
+                }
+            },
             modifier = Modifier.fillMaxSize()
         )
 
         // Buffering loader
-        if (isBuffering) {
+        if (isBuffering && !hasPlaybackError) {
             Box(
                 modifier = Modifier.fillMaxSize(),
                 contentAlignment = Alignment.Center
@@ -266,6 +285,53 @@ fun ExoVideoPlayer(
                     color = ShotblastCyan,
                     strokeWidth = 3.dp
                 )
+            }
+        }
+
+        // Playback Error Overlay with Quick Retry
+        if (hasPlaybackError) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color.Black.copy(alpha = 0.88f)),
+                contentAlignment = Alignment.Center
+            ) {
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    modifier = Modifier.padding(16.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Filled.ErrorOutline,
+                        contentDescription = "Error",
+                        tint = ShotblastCoral,
+                        modifier = Modifier.size(42.dp)
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = "Playback error. Tap to retry stream.",
+                        color = Color.White,
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.Medium
+                    )
+                    Spacer(modifier = Modifier.height(10.dp))
+                    Button(
+                        onClick = {
+                            hasPlaybackError = false
+                            isBuffering = true
+                            activeUrl = "https://flutter.github.io/assets-for-api-docs/assets/videos/bee.mp4"
+                            exoPlayer.setMediaItem(MediaItem.fromUri(activeUrl))
+                            exoPlayer.prepare()
+                            exoPlayer.play()
+                        },
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = ShotblastCyan,
+                            contentColor = Color.Black
+                        ),
+                        shape = RoundedCornerShape(18.dp)
+                    ) {
+                        Text("Retry Stream", fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                    }
+                }
             }
         }
 
